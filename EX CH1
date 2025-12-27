@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# Birthday Age Calculator Script
+# Calculates next birthday and time until next age
+
+echo "==================================="
+echo "    Birthday Age Calculator"
+echo "==================================="
+echo
+
+# Get user's birthday
+read -p "Enter your birthday (MM/DD/YYYY): " birthday
+
+# Validate input format
+if [[ ! $birthday =~ ^[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}$ ]]; then
+    echo "Error: Please use MM/DD/YYYY format"
+    exit 1
+fi
+
+# Parse the birthday
+birth_month=$(echo $birthday | cut -d'/' -f1)
+birth_day=$(echo $birthday | cut -d'/' -f2)
+birth_year=$(echo $birthday | cut -d'/' -f3)
+
+# Remove leading zeros to avoid octal interpretation
+birth_month=$((10#$birth_month))
+birth_day=$((10#$birth_day))
+
+# Get current date
+current_date=$(date +%Y-%m-%d)
+current_year=$(date +%Y)
+current_month=$(date +%m)
+current_day=$(date +%d)
+
+# Remove leading zeros
+current_month=$((10#$current_month))
+current_day=$((10#$current_day))
+
+echo "Today's date: $(date +%B\ %d,\ %Y)"
+echo "Your birthday: $(date -d "$birth_year-$birth_month-$birth_day" +%B\ %d,\ %Y)"
+echo
+
+# Calculate current age
+current_age=$((current_year - birth_year))
+
+# Check if birthday has passed this year
+if [ $current_month -gt $birth_month ] || 
+   ([ $current_month -eq $birth_month ] && [ $current_day -gt $birth_day ]); then
+    # Birthday has passed, next birthday is next year
+    next_birthday_year=$((current_year + 1))
+    next_age=$((current_age + 1))
+elif [ $current_month -eq $birth_month ] && [ $current_day -eq $birth_day ]; then
+    # Today is the birthday!
+    echo "🎉 HAPPY BIRTHDAY! 🎉"
+    echo "You are turning $current_age years old TODAY!"
+    exit 0
+else
+    # Birthday hasn't happened yet this year
+    next_birthday_year=$current_year
+    next_age=$current_age
+fi
+
+# Calculate next birthday date
+next_birthday="$next_birthday_year-$(printf %02d $birth_month)-$(printf %02d $birth_day)"
+
+# Calculate days until next birthday
+days_until=$(( ($(date -d "$next_birthday" +%s) - $(date +%s)) / 86400 ))
+
+# Calculate months and remaining days
+months_until=0
+temp_date="$current_year-$(printf %02d $current_month)-$(printf %02d $current_day)"
+
+# Count full months
+while true; do
+    # Add one month to temp_date
+    if [ $current_month -eq 12 ]; then
+        next_month=1
+        next_year=$((current_year + 1))
+    else
+        next_month=$((current_month + 1))
+        next_year=$current_year
+    fi
+    
+    # Check if adding a month would exceed the target date
+    next_temp_date="$next_year-$(printf %02d $next_month)-$(printf %02d $current_day)"
+    
+    # Handle case where next month doesn't have enough days
+    if ! date -d "$next_temp_date" >/dev/null 2>&1; then
+        # Use last day of next month
+        next_temp_date="$next_year-$(printf %02d $next_month)-01"
+        next_temp_date=$(date -d "$next_temp_date + 1 month - 1 day" +%Y-%m-%d)
+    fi
+    
+    if [[ "$next_temp_date" > "$next_birthday" ]]; then
+        break
+    fi
+    
+    months_until=$((months_until + 1))
+    temp_date=$next_temp_date
+    current_month=$next_month
+    current_year=$next_year
+done
+
+# Calculate remaining days after full months
+remaining_days=$(( ($(date -d "$next_birthday" +%s) - $(date -d "$temp_date" +%s)) / 86400 ))
+
+# Display results
+echo "Current age: $current_age years old"
+echo "Next birthday: $(date -d "$next_birthday" +%B\ %d,\ %Y)"
+echo "You will be turning: $next_age years old"
+echo
+echo "Time until next birthday:"
+echo "  Total days: $days_until days"
+echo "  Breakdown: $months_until months and $remaining_days days"
+echo
+echo "==================================="
