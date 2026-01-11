@@ -7,11 +7,6 @@ BOXDIR="$DIR/boxes"
 
 mkdir -p "$DIR" "$BOXDIR"
 
-# ----------------------------
-# 1) Pick a stable x (or random if you want)
-# ----------------------------
-# If you truly want it to always be the same every single time, set x=42.
-# If you want it to change per install, keep it random.
 x=42
 
 A=3
