@@ -3,24 +3,25 @@ set -e
 
 CHAL="proposal_equation"
 DIR="/home/student/CTF_Challenges/$CHAL"
+BOXDIR="$DIR/boxes"
 
-mkdir -p "$DIR"
+mkdir -p "$DIR" "$BOXDIR"
 
 # ----------------------------
-# 1) Generate a random x (the file index)
+# 1) Pick a stable x (or random if you want)
 # ----------------------------
-# Keep x in a safe range so we can create encoded_01..encoded_99.
-x=$(( (RANDOM % 60) + 20 ))   # x in [20..79]
+# If you truly want it to always be the same every single time, set x=42.
+# If you want it to change per install, keep it random.
+x=42
 
-# Choose A and B, build C = A*x + B (guaranteed integer solution)
-A=$(( (RANDOM % 8) + 2 ))     # A in [2..9]
-B=$(( (RANDOM % 30) + 5 ))    # B in [5..34]
+A=3
+B=7
 C=$(( A * x + B ))
 
-FLAG="CTF{MATH_UNLOCKED_LOVE_${x}}"
+FLAG="CTF{TRUE_LOVE_EQUALS_${x}}"
 
 # ----------------------------
-# 2) Create the clue files (A, B, C split across them)
+# 2) Create clue files
 # ----------------------------
 cat > "$DIR/cupid_note.txt" <<'EOF'
 Dear contestant,
@@ -30,52 +31,53 @@ He remembers only this:
 
 ( A * x ) + B = C
 
-Find A, B, and C from the other notes.
-Then solve for x.
+Find A, B, and C from the other notes,
+then solve for x.
+
+Once you find x, Cupid hid the real message in:
+boxes/<x>/encoded_love.txt
 
 - Cupid
 EOF
 
-# A in a "data" file
 cat > "$DIR/roses_and_math.txt" <<EOF
 roses=red
 violets=blue
-chocolate=sweet
 A=$A
+chocolate=sweet
 EOF
 
-# B and C mixed into receipt noise (B has spacing to force parsing skills)
 cat > "$DIR/dinner_receipt.txt" <<EOF
 Date Night Receipt
 -----------------
-appetizer .......... 11
-dessert ............  7
+dessert ............ 7
 B = $B
-candles ............  5
 Total: $C
 C=$C
 EOF
 
-# Small hint
 cat > "$DIR/hint.txt" <<'EOF'
-Once you solve for x, use it as a clue.
-Cupid labeled the true message with the number you found.
+There are many boxes.
+Each box contains a file with the SAME name: encoded_love.txt
+Only the box number you solve for (x) contains the real flag.
 EOF
 
 # ----------------------------
-# 3) Create many encoded files; only encoded_<x>.txt is real
+# 3) Create boxes 01..99, each with "encoded_love.txt"
+#    Only boxes/<x>/encoded_love.txt contains the real flag
 # ----------------------------
-# We will create encoded_01.txt..encoded_99.txt
-# Most decode into harmless decoys. Only encoded_<x>.txt decodes to the real flag.
 for i in $(seq -w 1 99); do
-  msg="DECOY{LOVE_IS_CONFUSING_$i}"
-  echo -n "$msg" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_${i}.txt"
+  mkdir -p "$BOXDIR/$i"
+  msg="DECOY{HEARTS_AND_LIES_$i}"
+  echo -n "$msg" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$i/encoded_love.txt"
 done
 
-# Overwrite the correct one with the real flag (and a romantic message)
-REALMSG="$FLAG"
-echo -n "$REALMSG" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_$(printf "%02d" "$x").txt"
+# Overwrite the real one
+REALFOLDER=$(printf "%02d" "$x")
+echo -n "$FLAG" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$REALFOLDER/encoded_love.txt"
 
-chmod 644 "$DIR"/*
+chmod -R 644 "$DIR"
+find "$BOXDIR" -type d -exec chmod 755 {} \;
+
 echo "[+] Installed $CHAL at $DIR"
-echo "[+] (Admin note) Correct file is encoded_$(printf "%02d" "$x").txt"
+echo "[+] (Admin note) Real path: $BOXDIR/$REALFOLDER/encoded_love.txt"
