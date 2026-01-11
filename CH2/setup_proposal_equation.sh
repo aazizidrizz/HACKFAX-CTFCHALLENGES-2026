@@ -3,56 +3,79 @@ set -e
 
 CHAL="proposal_equation"
 DIR="/home/student/CTF_Challenges/$CHAL"
-FLAG="CTF{TRUE_LOVE_EQUALS_42}"
 
 mkdir -p "$DIR"
 
-# File 1: tells the equation structure
+# ----------------------------
+# 1) Generate a random x (the file index)
+# ----------------------------
+# Keep x in a safe range so we can create encoded_01..encoded_99.
+x=$(( (RANDOM % 60) + 20 ))   # x in [20..79]
+
+# Choose A and B, build C = A*x + B (guaranteed integer solution)
+A=$(( (RANDOM % 8) + 2 ))     # A in [2..9]
+B=$(( (RANDOM % 30) + 5 ))    # B in [5..34]
+C=$(( A * x + B ))
+
+FLAG="CTF{MATH_UNLOCKED_LOVE_${x}}"
+
+# ----------------------------
+# 2) Create the clue files (A, B, C split across them)
+# ----------------------------
 cat > "$DIR/cupid_note.txt" <<'EOF'
 Dear contestant,
 
-Cupid got nervous and tore the equation apart.
+Cupid tore the equation apart.
 He remembers only this:
 
 ( A * x ) + B = C
 
-Find A, B, and C from the other love notes.
+Find A, B, and C from the other notes.
+Then solve for x.
 
 - Cupid
 EOF
 
-# File 2: contains A hidden in normal-looking "data"
-cat > "$DIR/roses_and_math.txt" <<'EOF'
+# A in a "data" file
+cat > "$DIR/roses_and_math.txt" <<EOF
 roses=red
 violets=blue
-A=3
 chocolate=sweet
+A=$A
 EOF
 
-# File 3: contains B and C mixed into a receipt with noise
-cat > "$DIR/dinner_receipt.txt" <<'EOF'
+# B and C mixed into receipt noise (B has spacing to force parsing skills)
+cat > "$DIR/dinner_receipt.txt" <<EOF
 Date Night Receipt
 -----------------
 appetizer .......... 11
 dessert ............  7
-B = 7
+B = $B
 candles ............  5
-Total: 133
-C=133
+Total: $C
+C=$C
 EOF
 
-# File 4: real flag encoded as decimal ASCII values
-echo -n "$FLAG" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_love.txt"
-
-# Decoy encoded file (to increase difficulty)
-echo -n "CTF{NOT_THIS_ONE}" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_decoy.txt"
-
-# Small hint that doesn't give away exact commands
+# Small hint
 cat > "$DIR/hint.txt" <<'EOF'
-True love is consistent.
-If you find A, B, and C, you can solve for x.
-Once you have x, the rest should "convert" nicely.
+Once you solve for x, use it as a clue.
+Cupid labeled the true message with the number you found.
 EOF
+
+# ----------------------------
+# 3) Create many encoded files; only encoded_<x>.txt is real
+# ----------------------------
+# We will create encoded_01.txt..encoded_99.txt
+# Most decode into harmless decoys. Only encoded_<x>.txt decodes to the real flag.
+for i in $(seq -w 1 99); do
+  msg="DECOY{LOVE_IS_CONFUSING_$i}"
+  echo -n "$msg" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_${i}.txt"
+done
+
+# Overwrite the correct one with the real flag (and a romantic message)
+REALMSG="$FLAG"
+echo -n "$REALMSG" | od -An -tu1 | sed 's/^ *//' > "$DIR/encoded_$(printf "%02d" "$x").txt"
 
 chmod 644 "$DIR"/*
 echo "[+] Installed $CHAL at $DIR"
+echo "[+] (Admin note) Correct file is encoded_$(printf "%02d" "$x").txt"
