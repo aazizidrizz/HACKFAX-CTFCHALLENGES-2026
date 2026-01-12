@@ -1,15 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-############################
-# Configuration
-############################
 CHAL="proposal_equation"
-BASE="$HOME/CTF_Challenges"
+BASE="/home/student/CTF_Challenges"
 DIR="$BASE/$CHAL"
 BOXDIR="$DIR/boxes"
 
-# Stable math values (easy to test, change later if desired)
+# Stable math values
 x=42
 A=3
 B=7
@@ -17,25 +14,28 @@ C=$((A * x + B))
 
 FLAG="CTF{TRUE_LOVE_EQUALS_${x}}"
 
-############################
-# Pre-flight checks
-############################
+# --- Pre-flight checks ---
+# Make sure the base exists and is writable
 mkdir -p "$BASE"
 
 if [[ ! -w "$BASE" ]]; then
-  echo "[!] ERROR: $BASE is not writable by $USER"
-  echo "Fix: sudo chown -R $USER:$USER \"$BASE\""
+  echo "[!] ERROR: $BASE is not writable by user: $(whoami)"
+  echo "    Fix (one-time): sudo chown -R student:student \"$BASE\""
   exit 1
 fi
 
-############################
-# Create directories
-############################
+# If the challenge folder exists but is not writable, call it out clearly
+if [[ -e "$DIR" && ! -w "$DIR" ]]; then
+  echo "[!] ERROR: $DIR exists but is not writable by user: $(whoami)"
+  echo "    Likely cause: it was created by sudo/root earlier."
+  echo "    Fix (one-time): sudo chown -R student:student \"$DIR\""
+  exit 1
+fi
+
+# --- Create directories ---
 mkdir -p "$DIR" "$BOXDIR"
 
-############################
-# Clue files
-############################
+# --- Clue files ---
 cat > "$DIR/cupid_note.txt" <<'EOF'
 Dear contestant,
 
@@ -75,34 +75,21 @@ Each box contains a file named encoded_love.txt.
 Only the box number you solve for (x) contains the real flag.
 EOF
 
-############################
-# Create decoy boxes
-############################
+# --- Create decoy boxes ---
 umask 022
-
 for i in $(seq -w 1 99); do
   mkdir -p "$BOXDIR/$i"
   msg="DECOY{HEARTS_AND_LIES_$i}"
   echo -n "$msg" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$i/encoded_love.txt"
 done
 
-############################
-# Insert real flag
-############################
+# --- Insert the real flag into the correct box ---
 REALBOX=$(printf "%02d" "$x")
 echo -n "$FLAG" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$REALBOX/encoded_love.txt"
 
-############################
-# SAFE permissions block
-# (this is the part that prevents future breakage)
-############################
+# --- SAFE permissions (never breaks directories) ---
 find "$DIR" -type d -exec chmod 755 {} \;
 find "$DIR" -type f -exec chmod 644 {} \;
 
-############################
-# Done
-############################
-echo "[+] Challenge installed safely at:"
-echo "    $DIR"
-echo "[+] Start here:"
-echo "    cd \"$DIR\""
+echo "[+] Installed $CHAL at $DIR"
+echo "[+] Start here: cd \"$DIR\""
