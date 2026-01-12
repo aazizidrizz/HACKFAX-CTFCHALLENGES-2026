@@ -1,0 +1,2 @@
+[System.Diagnostics.EventLog]::WriteEntry("CTF Challenge", "Secret message from admirer: {hr_doesnt_know} Logged on $(Get-Date)", [System.Diagnostics.EventLogEntryType]::Information, 214, 0)
+Write-Output "Logs planted! Check Event Viewer > Application > ID 214 > Source: CTF Challenge"
