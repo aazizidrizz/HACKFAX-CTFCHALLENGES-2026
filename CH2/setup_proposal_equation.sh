@@ -91,5 +91,3 @@ echo -n "$FLAG" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$REALBOX/encoded_love.t
 find "$DIR" -type d -exec chmod 755 {} \;
 find "$DIR" -type f -exec chmod 644 {} \;
 
-echo "[+] Installed $CHAL at $DIR"
-echo "[+] Start here: cd \"$DIR\""
