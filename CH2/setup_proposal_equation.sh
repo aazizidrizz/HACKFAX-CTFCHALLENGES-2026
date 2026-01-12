@@ -1,23 +1,43 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 CHAL="proposal_equation"
-DIR="/home/student/CTF_Challenges/$CHAL"
+
+# Use the current user's home directory
+BASE="$HOME/CTF_Challenges"
+DIR="$BASE/$CHAL"
 BOXDIR="$DIR/boxes"
 
-mkdir -p "$DIR" "$BOXDIR"
+# --- Pre-flight checks (prevents confusing permission errors) ---
+mkdir -p "$BASE" 2>/dev/null || {
+  echo "[!] ERROR: Cannot create $BASE"
+  echo "    Fix: sudo chown -R $USER:$USER \"$HOME\"/CTF_Challenges  (or choose another base path)"
+  exit 1
+}
 
+# If the directory exists but isn't writable, fail clearly
+if [[ -e "$DIR" && ! -w "$DIR" ]]; then
+  echo "[!] ERROR: $DIR exists but is not writable by $USER."
+  echo "    Likely cause: it was created by sudo/root earlier."
+  echo "    Fix: sudo chown -R $USER:$USER \"$DIR\""
+  exit 1
+fi
+
+mkdir -p "$DIR" "$BOXDIR" || {
+  echo "[!] ERROR: Cannot create challenge directories under $BASE"
+  exit 1
+}
+
+# --- Stable math values (so it's predictable for testing) ---
+# If you want random later, tell me and I'll add safe randomization.
 x=42
-
 A=3
 B=7
-C=$(( A * x + B ))
+C=$((A * x + B))
 
 FLAG="CTF{TRUE_LOVE_EQUALS_${x}}"
 
-# ----------------------------
-# 2) Create clue files
-# ----------------------------
+# --- Clue files ---
 cat > "$DIR/cupid_note.txt" <<'EOF'
 Dear contestant,
 
@@ -57,10 +77,10 @@ Each box contains a file with the SAME name: encoded_love.txt
 Only the box number you solve for (x) contains the real flag.
 EOF
 
-# ----------------------------
-# 3) Create boxes 01..99, each with "encoded_love.txt"
-#    Only boxes/<x>/encoded_love.txt contains the real flag
-# ----------------------------
+# --- Create boxes 01..99, each with encoded_love.txt ---
+# Use umask so files are readable without needing chmod
+umask 022
+
 for i in $(seq -w 1 99); do
   mkdir -p "$BOXDIR/$i"
   msg="DECOY{HEARTS_AND_LIES_$i}"
@@ -71,8 +91,5 @@ done
 REALFOLDER=$(printf "%02d" "$x")
 echo -n "$FLAG" | od -An -tu1 | sed 's/^ *//' > "$BOXDIR/$REALFOLDER/encoded_love.txt"
 
-chmod -R 644 "$DIR"
-find "$BOXDIR" -type d -exec chmod 755 {} \;
-
 echo "[+] Installed $CHAL at $DIR"
-echo "[+] (Admin note) Real path: $BOXDIR/$REALFOLDER/encoded_love.txt"
+echo "[+] Start here: cd \"$DIR\""
