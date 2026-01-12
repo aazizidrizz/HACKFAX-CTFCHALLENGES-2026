@@ -40,5 +40,3 @@ chmod -R 755 .letters
 chmod 644 .letters/.drafts/valentine.txt poem.txt hiddenfile.txt
 chmod 644 letter1.txt letter2.txt roses.txt chocolate.txt
 
-echo "[+] Challenge files created at: $LEVEL_DIR"
-echo "[+] (Dev) Real flag: $FLAG"
